@@ -1,0 +1,57 @@
+version: '3'
+
+services:
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./:/var/www
+      - ./_docker/nginx/conf.d:/etc/nginx/conf.d
+    ports:
+      - "8080:80"
+    depends_on:
+      - app
+    container_name: import_excel_nginx
+
+  app:
+    build:
+      context: .
+      dockerfile: _docker/app/Dockerfile
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    container_name: import_excel
+
+  db:
+    image: mariadb:10.8
+    restart: always
+    volumes:
+      - ./tmp/db:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: import_excel
+      MYSQL_USER: import_excel
+      MYSQL_PASSWORD: T3j6hFEk
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    ports:
+      - "8101:3306"
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    container_name: import_excel_db
+
+  redis:
+    image: redis:7.0    
+    ports:
+      - "6382:6379"
+    container_name: import_excel_redis
+
+  rabbitmq:
+    image: rabbitmq:3.10-management
+    ports:
+      - "5677:5672"
+      - "15677:15672"
+    volumes:
+      - ./_docker/rabbitmq/data:/var/lib/rabbitmq
+      - ./_docker/rabbitmq/log:/var/log/rabbitmq
+    command: ["bash", "-c", "chmod 400 /var/lib/rabbitmq/.erlang.cookie; rabbitmq-server"]
+    container_name: import_excel_rabbitmq
